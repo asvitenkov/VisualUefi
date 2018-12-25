@@ -68,6 +68,151 @@ UefiUnload (
     ASSERT(FALSE);
 }
 
+// TEST CODE
+
+void EFIAPI ConsolePause()
+{
+	UINTN EventIndex;
+	gST->ConIn->Reset(gST->ConIn, FALSE);
+	gBS->WaitForEvent(1, &gST->ConIn->WaitForKey, &EventIndex);
+}
+
+EFI_STATUS EFIAPI PrintAvaliableGraphicsModes()
+{
+	EFI_STATUS efiStatus = EFI_SUCCESS;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphicsOuptutPtotocol = NULL;
+
+	efiStatus = gBS->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, &graphicsOuptutPtotocol);
+
+	if (EFI_ERROR(efiStatus))
+	{
+		Print(L"Failed to locate efi graphics output protocol: %lx\n", efiStatus);
+		return efiStatus;
+	}
+
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *modeInformation = graphicsOuptutPtotocol->Mode->Info;
+	UINT32 index = 0;
+	UINTN size = 0;
+
+	Print(L"Graphics modes count: %d\n", graphicsOuptutPtotocol->Mode->MaxMode);
+	Print(L"Current mode: resolution %d x %d\n", modeInformation->HorizontalResolution, modeInformation->HorizontalResolution);
+
+	for (index = 0; index < graphicsOuptutPtotocol->Mode->MaxMode; ++index)
+	{
+		efiStatus = graphicsOuptutPtotocol->QueryMode(graphicsOuptutPtotocol, index, &size, &modeInformation);
+
+		if (!EFI_ERROR(efiStatus))
+		{
+			Print(L"mode %d: resolution %d x %d [press any key to continue]\n", index + 1, modeInformation->HorizontalResolution, modeInformation->VerticalResolution);
+			ConsolePause();
+		}
+	}
+
+	Print(L"[press any key to continue]\n");
+	ConsolePause();
+
+	return efiStatus;
+}
+
+EFI_STATUS EFIAPI PrintAvaliableTextModes()
+{
+	EFI_STATUS efiStatus = EFI_SUCCESS;
+	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *textOutProtocol = gST->ConOut;
+	UINTN cols, rows;
+
+	Print(L"Console text modes count: %d\n", textOutProtocol->Mode->MaxMode);
+	efiStatus = textOutProtocol->QueryMode(textOutProtocol, textOutProtocol->Mode->Mode, &cols, &rows);
+	if (!EFI_ERROR(efiStatus))
+		Print(L"Current text mode: %d x %d\n", cols, rows);
+
+	for (UINTN i = 0; i < textOutProtocol->Mode->MaxMode; ++i)
+	{
+		efiStatus = textOutProtocol->QueryMode(textOutProtocol, i, &cols, &rows);
+
+		if (!EFI_ERROR(efiStatus))
+		{
+			Print(L"mode %d: %d x %d [press any key to continue]\n", i + 1, cols, rows);
+			ConsolePause();
+		}
+	}
+
+	Print(L"[press any key to continue]\n");
+	ConsolePause();
+
+	return efiStatus;
+}
+
+void ResetTextOutputDevice()
+{
+	gST->ConOut->Reset(gST->ConOut, FALSE);
+}
+
+EFI_GRAPHICS_OUTPUT_PROTOCOL* GetGraphicsOutputProtocol()
+{
+	EFI_STATUS efiStatus = EFI_SUCCESS;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphicsOuptutPtotocol = NULL;
+
+	efiStatus = gBS->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, &graphicsOuptutPtotocol);
+
+	if (EFI_ERROR(efiStatus))
+		Print(L"Failed to locate EFI graphics output protocol: %lx\n", efiStatus);
+
+	return graphicsOuptutPtotocol;
+}
+
+EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* GetCurrentGraphicsModeInformation()
+{
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info = NULL;
+
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphicsOuptutPtotocol = GetGraphicsOutputProtocol();
+
+	if (graphicsOuptutPtotocol)
+		info = graphicsOuptutPtotocol->Mode->Info;
+
+	return info;
+}
+
+void DrawHorizontalLine(UINTN x, UINTN y, UINTN length, UINTN width, EFI_GRAPHICS_OUTPUT_BLT_PIXEL color)
+{
+	EFI_STATUS efiStatus = EFI_SUCCESS;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphicsOuptutPtotocol = GetGraphicsOutputProtocol();
+
+	if (graphicsOuptutPtotocol)
+	{
+		efiStatus = graphicsOuptutPtotocol->Blt(graphicsOuptutPtotocol, &color, EfiBltVideoFill, 0, 0, x, y, length, width, 0);
+
+		if (EFI_ERROR(efiStatus))
+			Print(L"Failed to draw horizontal line: %lx\n", efiStatus);
+	}
+}
+
+void DrawVerticalLine(UINTN x, UINTN y, UINTN length, UINTN width, EFI_GRAPHICS_OUTPUT_BLT_PIXEL color)
+{
+	EFI_STATUS efiStatus = EFI_SUCCESS;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphicsOuptutPtotocol = GetGraphicsOutputProtocol();
+
+	if (graphicsOuptutPtotocol)
+	{
+		efiStatus = graphicsOuptutPtotocol->Blt(graphicsOuptutPtotocol, &color, EfiBltVideoFill, 0, 0, x, y, width, length, 0);
+
+		if (EFI_ERROR(efiStatus))
+			Print(L"Failed to draw horizontal line: %lx\n", efiStatus);
+	}
+}
+
+void DrawRectangle(UINTN x, UINTN y, UINTN width, UINTN height, UINTN borderSize, EFI_GRAPHICS_OUTPUT_BLT_PIXEL color)
+{
+	ConsolePause();
+	DrawHorizontalLine(x, y, width, borderSize, color);
+	ConsolePause();
+	DrawHorizontalLine(x, y + height, width, borderSize, color);
+	ConsolePause();
+	DrawVerticalLine(x, y, height, borderSize, color);
+	ConsolePause();
+	DrawVerticalLine(x + width, y, height, borderSize, color);
+	ConsolePause();
+}
+
 EFI_STATUS
 EFIAPI
 UefiMain (
@@ -75,10 +220,51 @@ UefiMain (
     IN EFI_SYSTEM_TABLE* SystemTable
     )
 {
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphicsOuptutPtotocol = NULL;
+	EFI_STATUS efiStatus = EFI_SUCCESS;
+
+	ResetTextOutputDevice();
 
 
-    Print(L"Hello World! My handle is %lx and System Table is at %p\n",
-          ImageHandle, SystemTable);
+
+	{
+		EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *currentModeInfo = GetCurrentGraphicsModeInformation();
+
+		if (currentModeInfo)
+		{
+			UINTN widthMax = currentModeInfo->HorizontalResolution;
+			UINTN heightMax = currentModeInfo->VerticalResolution;
+			UINTN borderSize = 10;
+			UINTN margin = 100;
+			EFI_GRAPHICS_OUTPUT_BLT_PIXEL pixel = { 0, 0, 255, 0 };
+
+			DrawRectangle(margin, margin, widthMax - 2 * margin, heightMax - 2 * margin, borderSize, pixel);
+		}
+	}
+	
+
+	/*
+
+	Print(L"Hello World! My handle is %lx and System Table is at %p\n",
+	    ImageHandle, SystemTable);
+
+	ResetTextOutputDevice();
+	PrintAvaliableGraphicsModes();
+	PrintAvaliableTextModes();
+	ResetTextOutputDevice();
+	*/
+
+	efiStatus = gBS->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, &graphicsOuptutPtotocol);
+
+	if (EFI_ERROR(efiStatus))
+	{
+		Print(L"Failed to locate efi graphics output protocol driver: %lx\n", efiStatus);
+		return efiStatus;
+	}
+
+
+	Print(L"Exit UEFI application");
+	ConsolePause();
 
     return EFI_SUCCESS;
 }
