@@ -174,16 +174,7 @@ Please refer to EDK-II/TianoCore for all documentation/help regarding EDK-II.
 
 You can press F5 (Run/Debug) from within the Sample Solution, which should spin up the QEMU instance with 512MB of RAM, and your release directory as a virtual file system accessible through fs1:
 
-You can then try loading the driver as follows:
-
-	* load fs1:\UefiDriver.efi
-
-You can verify its presence by using either of these commands:
-
-	* drivers (Should display "Sample Driver")
-	* devtree (Should show a few "Sample Device" entries)
-
-You can also launch the sample application, which should find the driver:
+You can launch the sample application, which should find the driver:
 
 	* fs1:\UefiApplication.efi
 
