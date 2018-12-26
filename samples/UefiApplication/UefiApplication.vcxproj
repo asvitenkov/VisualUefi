@@ -22,6 +22,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="console.c" />
+    <ClCompile Include="DrawBase.c" />
     <ClCompile Include="helloapp.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="console.h" />
+    <ClInclude Include="DrawBase.h" />
   </ItemGroup>
 </Project>
